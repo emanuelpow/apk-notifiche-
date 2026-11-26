@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="tg_blue">#2AABEE</color>
+    <color name="tg_blue_dark">#1C8AD0</color>
+
+    <style name="Theme.NotificheTelegram" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">@color/tg_blue_dark</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+    </style>
+</resources>
