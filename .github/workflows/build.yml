@@ -1,0 +1,59 @@
+name: Build Notifiche Telegram APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.NOTIFICHE_KEYSTORE_BASE64 != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Se il progetto è stato caricato come zip (es. da telefono), lo estrae
+      - name: Estrai progetto dallo zip
+        run: |
+          if [ -f NotificheTelegram.zip ]; then
+            unzip -oq NotificheTelegram.zip -d /tmp/progetto
+            cp -r /tmp/progetto/notifiche-telegram/. .
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Decodifica keystore
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.NOTIFICHE_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build APK release firmata
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          SIGNING_STORE_FILE: ${{ runner.temp }}/release.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.NOTIFICHE_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.NOTIFICHE_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.NOTIFICHE_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon
+
+      - name: Build APK debug (nessun keystore configurato)
+        if: env.HAS_KEYSTORE != 'true'
+        run: gradle assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NotificheTelegram-apk
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
